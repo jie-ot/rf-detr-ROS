@@ -4,3 +4,11 @@
     <param name="config_file" value="$(arg config_file)"/>
   </node>
 </launch>
+
+
+<launch>
+  <arg name="config_file" default="$(find rf_detr)/config/rf_detr.yaml"/>
+  <node pkg="rf_detr" type="rf_detr_node.py" name="rf_detr" output="screen">
+    <rosparam command="load" file="$(arg config_file)"/>
+  </node>
+</launch>
