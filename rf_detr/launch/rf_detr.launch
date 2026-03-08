@@ -1,1 +1,6 @@
-
+<launch>
+  <arg name="config_file" default="$(find rf_detr)/config/rf_detr.yaml"/>
+  <node pkg="rf_detr" type="rf_detr" name="rf_detr" output="screen">
+    <param name="config_file" value="$(arg config_file)"/>
+  </node>
+</launch>
