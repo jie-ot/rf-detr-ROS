@@ -1,8 +1,5 @@
 task: "detection"
 size: "small"
-
 conf_threshold: 0.5
-
 input_topic: "/camera/image_raw"
-
-checkpoint: "rf-detr-small.pth"
+engine_file: "rf_detr_small.engine"
