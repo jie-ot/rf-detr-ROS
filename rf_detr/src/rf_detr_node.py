@@ -1,5 +1,5 @@
 """
-版本1：适用于.onnx文件，如果无法用TensorRT优化，就用这个版本
+版本1：适用于.onnx文件，同时还进行了灰色填充，如果无法用TensorRT优化且不填充速度很优渥，就用这个版本
 """
 #!/usr/bin/env python3
 import rospy
