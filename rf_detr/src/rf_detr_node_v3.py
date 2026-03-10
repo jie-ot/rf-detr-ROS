@@ -15,7 +15,18 @@ from std_msgs.msg import Header
 from rf_detr.msg import Detection, DetectionArray
 
 # COCO 类别列表
-COCO_CLASSES = ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"]
+COCO_CLASSES =[
+    "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
+    "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
+    "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
+    "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
+    "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
+    "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+    "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair",
+    "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse",
+    "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
+    "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
+]
 
 class RFDetrTRTNode:
     def __init__(self):
@@ -26,7 +37,7 @@ class RFDetrTRTNode:
         self.conf_threshold = rospy.get_param('~conf_threshold', 0.5)
         self.input_h = rospy.get_param('~input_height', 672)
         self.input_w = rospy.get_param('~input_width', 672)
-        engine_name = rospy.get_param('~engine_file', 'rf_detr_small.engine')
+        engine_name = rospy.get_param('~model_file', 'rf_detr_small.engine')
         
         # 路径
         rospack = rospkg.RosPack()
@@ -47,8 +58,7 @@ class RFDetrTRTNode:
         
         self.bridge = CvBridge()
         self.pub = rospy.Publisher('/detections', DetectionArray, queue_size=10)
-        self.sub = rospy.Subscriber(rospy.get_param('~input_topic', '/camera/image_raw'), 
-                                    Image, self.image_callback, queue_size=1, tcp_nodelay=True)
+        self.sub = rospy.Subscriber(rospy.get_param('~input_topic', '/camera/image_raw'), Image, self.image_callback, queue_size=1, tcp_nodelay=True)
         rospy.loginfo("[RF-DETR] TensorRT Node started successfully.")
 
     def _allocate_buffers(self):
