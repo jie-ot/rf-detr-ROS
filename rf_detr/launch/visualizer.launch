@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="rf_detr" type="visualizer_node.py" name="visualizer" output="screen" />
+</launch>
