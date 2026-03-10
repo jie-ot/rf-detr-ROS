@@ -2,6 +2,6 @@ task: "detection"
 size: "small"
 conf_threshold: 0.5
 input_topic: "/camera/image_raw"
-engine_file: "rf_detr_small.engine"
+model_file: "infer_small_model.sim.onnx"
 input_height: 672
 input_width: 672
