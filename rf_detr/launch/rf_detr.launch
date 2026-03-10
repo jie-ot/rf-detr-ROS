@@ -12,3 +12,10 @@
     <rosparam command="load" file="$(arg config_file)"/>
   </node>
 </launch>
+
+
+
+pip3 install onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/ --user
+python3 -c "import onnxruntime; print(onnxruntime.get_available_providers())"
+
+python3 -c "import tensorrt; print(tensorrt.__version__)"
