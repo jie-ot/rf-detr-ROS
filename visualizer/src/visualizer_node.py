@@ -21,13 +21,17 @@ class VisualizerNode:
 
     def callback(self, img_msg, det_msg):
         img = self.bridge.imgmsg_to_cv2(img_msg, "bgr8")
+        h_img, w_img = img.shape[:2]
         
         # 画框
         for det in det_msg.detections:
-            x1, y1, x2, y2 = [int(v) for v in det.bbox]
+            x1 = int(max(0, det.bbox[0]))
+            y1 = int(max(0, det.bbox[1]))
+            x2 = int(min(w_img, det.bbox[2]))
+            y2 = int(min(h_img, det.bbox[3]))
+            
             cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(img, f"{det.class_name} {det.score:.2f}", (x1, y1 - 10), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.putText(img, f"{det.class_name} {det.score:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         
         # 发布
         out_msg = self.bridge.cv2_to_imgmsg(img, "bgr8")
