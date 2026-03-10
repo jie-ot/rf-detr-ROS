@@ -1,3 +1,6 @@
+"""
+版本3：增加了TensorRT加速的版本
+"""
 #!/usr/bin/env python3
 import rospy
 import cv2
