@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import os
 import rospkg
+import time
 import onnxruntime as ort
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
@@ -30,6 +31,9 @@ class RFDetrORTNode:
     def __init__(self):
         rospy.init_node('rf_detr_ort_node')
         rospy.on_shutdown(self.cleanup)
+
+        self.fps_frame_count = 0
+        self.fps_start_time = time.pref_counter()
         
         # 参数
         self.conf_threshold = rospy.get_param('~conf_threshold', 0.5)
@@ -41,7 +45,7 @@ class RFDetrORTNode:
         rospack = rospkg.RosPack()
         model_path = os.path.join(rospack.get_path('rf_detr'), 'models', model_name)
         
-        # 加载 ONNX Session (指定使用 CUDA)
+        # 加载 ONNX Session
         rospy.loginfo(f"Loading ONNX model: {model_path}")
         providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
         self.session = ort.InferenceSession(model_path, providers=providers)
@@ -68,6 +72,15 @@ class RFDetrORTNode:
 
     def image_callback(self, msg):
         try:
+            # FPS统计
+            self.fps_frame_count += 1
+            now = time.perf_counter()
+            if now - self.fps_start_time >= 1.0:
+                fps = self.fps_frame_count / (now - self.fps_start_time)
+                rospy.loginfo_throttle(1.0, f"[RF-DETR] Inference FPS: {fps:.2f}")
+                self.fps_frame_count = 0
+                self.fps_start_time = now
+                
             img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
             orig_h, orig_w = img.shape[:2]
             input_tensor = self.preprocess(img)
