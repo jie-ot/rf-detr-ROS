@@ -2,10 +2,15 @@
 版本2：适用于.onnx文件，没有灰色填充，如果无法用TensorRT优化，就用这个版本
 """
 #!/usr/bin/env python3
+import os
+
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
 import rospy
 import cv2
 import numpy as np
-import os
 import rospkg
 import time
 import onnxruntime as ort
@@ -13,6 +18,8 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
 from std_msgs.msg import Header
 from rf_detr.msg import Detection, DetectionArray
+
+cv2.setNumThreads(1)
 
 COCO_CLASSES =[
     "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
@@ -39,7 +46,7 @@ class RFDetrORTNode:
         self.conf_threshold = rospy.get_param('~conf_threshold', 0.5)
         self.input_h = rospy.get_param('~input_height', 672)
         self.input_w = rospy.get_param('~input_width', 672)
-        model_name = rospy.get_param('~model_file', 'infer_small_model.sim.onnx')
+        model_name = rospy.get_param('~model_file', 'inference_model.sim.onnx')
         
         # 路径
         rospack = rospkg.RosPack()
@@ -47,12 +54,18 @@ class RFDetrORTNode:
         
         # 加载 ONNX Session
         rospy.loginfo(f"Loading ONNX model: {model_path}")
-        providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
-        self.session = ort.InferenceSession(model_path, providers=providers)
+        
+        sess_options = ort.SessionOptions()
+        sess_options.intra_op_num_threads = 2  # 算子内多线程：根据你的主板，建议给 2 个核心干活即可
+        sess_options.inter_op_num_threads = 1  # 算子间多线程：设为 1
+        sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL # 开启所有图优化以降低 CPU 负载
+        providers = ['CPUExecutionProvider']
+        self.session = ort.InferenceSession(model_path, sess_options=sess_options, providers=providers)
         
         self.bridge = CvBridge()
+        self.is_inferencing = False
         self.pub = rospy.Publisher('/detections', DetectionArray, queue_size=10)
-        self.sub = rospy.Subscriber(rospy.get_param('~input_topic', '/camera/image_raw'), Image, self.image_callback, queue_size=1, tcp_nodelay=True)
+        self.sub = rospy.Subscriber(rospy.get_param('~input_topic', '/camera/image_raw'), Image, self.image_callback, queue_size=1, tcp_nodelay=True, buff_size=2**24)
         rospy.loginfo("[RF-DETR] Node started successfully.")
 
     def preprocess(self, img):
@@ -71,6 +84,11 @@ class RFDetrORTNode:
         return input_tensor
 
     def image_callback(self, msg):
+        if self.is_inferencing:
+            return
+            
+        self.is_inferencing = True # 上锁
+    
         try:
             # FPS统计
             self.fps_frame_count += 1
@@ -125,10 +143,16 @@ class RFDetrORTNode:
             self.pub.publish(out_msg)
         except Exception as e:
             rospy.logerr(f"[RF-DETR] Callback error: {e}")
+        
+        finally:
+            self.is_inferencing = False
 
     def cleanup(self):
         rospy.loginfo("Cleanup complete.")
 
 if __name__ == '__main__':
-    RFDetrORTNode()
-    rospy.spin()
+    try:
+        node = RFDetrORTNode()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass
