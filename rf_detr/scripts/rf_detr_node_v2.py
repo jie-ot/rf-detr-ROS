@@ -33,7 +33,7 @@ class RFDetrORTNode:
         rospy.on_shutdown(self.cleanup)
 
         self.fps_frame_count = 0
-        self.fps_start_time = time.pref_counter()
+        self.fps_start_time = time.perf_counter()
         
         # 参数
         self.conf_threshold = rospy.get_param('~conf_threshold', 0.5)
