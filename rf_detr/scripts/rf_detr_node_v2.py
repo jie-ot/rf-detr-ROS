@@ -46,21 +46,35 @@ class RFDetrORTNode:
         self.conf_threshold = rospy.get_param('~conf_threshold', 0.5)
         self.input_h = rospy.get_param('~input_height', 672)
         self.input_w = rospy.get_param('~input_width', 672)
-        model_name = rospy.get_param('~model_file', 'inference_model.sim.onnx')
+        model_name = rospy.get_param('~model_file', 'inference_nano_model.sim.onnx')
         
         # 路径
         rospack = rospkg.RosPack()
-        model_path = os.path.join(rospack.get_path('rf_detr'), 'models', model_name)
+        model_dir = os.path.join(rospack.get_path('rf_detr'), 'models')
+        model_path = os.path.join(model_dir, model_name)
         
         # 加载 ONNX Session
         rospy.loginfo(f"Loading ONNX model: {model_path}")
         
         sess_options = ort.SessionOptions()
-        sess_options.intra_op_num_threads = 2  # 算子内多线程：根据你的主板，建议给 2 个核心干活即可
-        sess_options.inter_op_num_threads = 1  # 算子间多线程：设为 1
+        sess_options.intra_op_num_threads = 3  # 算子内多线程
+        sess_options.inter_op_num_threads = 1  # 算子间多线程
         sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL # 开启所有图优化以降低 CPU 负载
-        providers = ['CPUExecutionProvider']
-        self.session = ort.InferenceSession(model_path, sess_options=sess_options, providers=providers)
+        providers = ['OpenVINOExecutionProvider', 'CPUExecutionProvider']
+        
+        provider_options =[
+            {
+                'device_type': 'CPU_FP32',
+                'cache_dir': model_dir,         
+                'num_of_threads': 3, # 给 OpenVINO 分配的线程数
+                'enable_opencl_throttling': False 
+            },
+            {} # 空字典对应后面的 CPUExecutionProvider
+        ]
+        rospy.loginfo("正在通过 Intel OpenVINO 引擎加载模型")
+        
+        self.session = ort.InferenceSession(model_path, sess_options=sess_options, providers=providers, provider_options=provider_options)
+        #self.session = ort.InferenceSession(model_path, sess_options=sess_options, providers=providers)
         
         self.bridge = CvBridge()
         self.is_inferencing = False
